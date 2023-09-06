@@ -18,11 +18,24 @@ def generate_flanking_sequences(reference_genome_file, vcf_file, flanking_length
             alt = record.alts[0]  # Assuming there's only one alternate allele
 
             # Determine the start and end positions for flanking sequences
-            start = max(0, pos - flanking_length)
-            end = min(reference.get_reference_length(chrom), pos + flanking_length)
+            if len(ref) == 1 and len(alt) > 1:  # Insertion
+                start = max(0, pos - flanking_length -1)
+                end = min(reference.get_reference_length(chrom), pos + flanking_length + 1)
+            elif len(ref) > 1 and len(alt) == 1:  # Deletion
+                start = max(0, pos - flanking_length -1)
+                end = min(reference.get_reference_length(chrom), pos + len(ref) + flanking_length)
+            else:  # SNP or other cases, treat as you did before
+                start = max(0, pos - flanking_length -1)
+                end = min(reference.get_reference_length(chrom), pos + flanking_length + 1)
+
+            # Ensure start is not less than 0
+            start = max(0, start)
+
+            # Ensure end is not greater than reference genome length
+            end = min(end, reference.get_reference_length(chrom))
 
             # Extract the flanking sequences
-            left_flank = reference.fetch(chrom, start, pos)
+            left_flank = reference.fetch(chrom, start, pos-1)
             right_flank = reference.fetch(chrom, pos + len(ref), end)
 
             # Create the output string with the custom format
@@ -41,3 +54,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     generate_flanking_sequences(args.reference_genome, args.vcf_file, args.flanking_length, args.output_file)
+
